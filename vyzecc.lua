@@ -7318,17 +7318,15 @@ if G.Frame_16 then G.Frame_16.Visible = false end
 if G.SizeDropdown then G.SizeDropdown.Visible = false end
 if G.Arrow then G.Arrow.Visible = false end
 
-local _actionAntiDie = { drop = false, aimbot = false, tpDown = false }
-local _actionAntiDieEnabled = false
-local _actionAntiDieConn = nil
-local _actionAntiDieCharConn = nil
-local function _setActionAntiDieSource(name, on)
-	_actionAntiDie[name] = on == true
-	local want = _actionAntiDie.drop or _actionAntiDie.aimbot or _actionAntiDie.tpDown
-	if want == _actionAntiDieEnabled then return end
-	_actionAntiDieEnabled = want
-	if _actionAntiDieConn then _actionAntiDieConn:Disconnect(); _actionAntiDieConn = nil end
-	if _actionAntiDieCharConn then _actionAntiDieCharConn:Disconnect(); _actionAntiDieCharConn = nil end
+local _antiDieEnabled = false
+local _antiDieConn = nil
+local _antiDieCharConn = nil
+local function setAntiDieEnabled(on)
+	on = on == true
+	if _antiDieEnabled == on then return end
+	_antiDieEnabled = on
+	if _antiDieConn then _antiDieConn:Disconnect(); _antiDieConn = nil end
+	if _antiDieCharConn then _antiDieCharConn:Disconnect(); _antiDieCharConn = nil end
 	local function protect(char)
 		local hum = char and char:FindFirstChildOfClass("Humanoid")
 		if not hum then return end
@@ -7338,14 +7336,14 @@ local function _setActionAntiDieSource(name, on)
 			if hum.Health <= 0 then hum.Health = hum.MaxHealth end
 		end)
 	end
-	if want then
+	if on then
 		protect(LocalPlayer.Character)
-		_actionAntiDieCharConn = LocalPlayer.CharacterAdded:Connect(function(char)
+		_antiDieCharConn = LocalPlayer.CharacterAdded:Connect(function(char)
 			task.wait(0.05)
-			if _actionAntiDieEnabled then protect(char) end
+			if _antiDieEnabled then protect(char) end
 		end)
-		_actionAntiDieConn = RunService.Heartbeat:Connect(function()
-			if not _actionAntiDieEnabled then return end
+		_antiDieConn = RunService.Heartbeat:Connect(function()
+			if not _antiDieEnabled then return end
 			local char = LocalPlayer.Character
 			local hum = char and char:FindFirstChildOfClass("Humanoid")
 			if not hum then return end
@@ -7355,6 +7353,63 @@ local function _setActionAntiDieSource(name, on)
 		end)
 	end
 end
+
+G.Frame_AntiDie = Instance.new("Frame")
+G.Frame_AntiDie.Name = "Frame_AntiDie"
+G.Frame_AntiDie.BackgroundTransparency = 1
+G.Frame_AntiDie.BorderSizePixel = 0
+G.Frame_AntiDie.LayoutOrder = 9
+G.Frame_AntiDie.Size = UDim2.new(1, 0, 0, 40)
+G.Frame_AntiDie.Parent = G.WavePage_Misc
+
+G.TextLabel_AntiDie = Instance.new("TextLabel")
+G.TextLabel_AntiDie.BackgroundTransparency = 1
+G.TextLabel_AntiDie.Position = UDim2.new(0, 12, 0, 0)
+G.TextLabel_AntiDie.Size = UDim2.new(1, -64, 1, 0)
+G.TextLabel_AntiDie.FontFace = Font.new("rbxasset://fonts/families/GothamSSm.json", Enum.FontWeight.Heavy, Enum.FontStyle.Normal)
+G.TextLabel_AntiDie.Text = "Anti Die"
+G.TextLabel_AntiDie.TextColor3 = Color3.fromRGB(234, 225, 240)
+G.TextLabel_AntiDie.TextSize = 11
+G.TextLabel_AntiDie.TextXAlignment = Enum.TextXAlignment.Left
+G.TextLabel_AntiDie.Parent = G.Frame_AntiDie
+
+G.WaveTogglePill_AntiDie = Instance.new("Frame")
+G.WaveTogglePill_AntiDie.Name = "WaveTogglePill"
+G.WaveTogglePill_AntiDie.BackgroundColor3 = Color3.fromRGB(24, 12, 40)
+G.WaveTogglePill_AntiDie.BorderSizePixel = 0
+G.WaveTogglePill_AntiDie.Position = UDim2.new(1, -54, 0.5, -9)
+G.WaveTogglePill_AntiDie.Size = UDim2.new(0, 40, 0, 18)
+G.WaveTogglePill_AntiDie.ZIndex = 7
+G.WaveTogglePill_AntiDie:SetAttribute("WaveToggleOn", false)
+G.WaveTogglePill_AntiDie.Parent = G.Frame_AntiDie
+
+local antiDieCorner = Instance.new("UICorner")
+antiDieCorner.CornerRadius = UDim.new(0, 9)
+antiDieCorner.Parent = G.WaveTogglePill_AntiDie
+local antiDieStroke = Instance.new("UIStroke")
+antiDieStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+antiDieStroke.Color = Color3.fromRGB(55, 25, 90)
+antiDieStroke.Parent = G.WaveTogglePill_AntiDie
+local antiDieDot = Instance.new("Frame")
+antiDieDot.Name = "WaveToggleDot"
+antiDieDot.BackgroundColor3 = Color3.fromRGB(40, 20, 70)
+antiDieDot.BorderSizePixel = 0
+antiDieDot.Position = UDim2.new(0, 3, 0.5, -6)
+antiDieDot.Size = UDim2.new(0, 12, 0, 12)
+antiDieDot.ZIndex = 8
+antiDieDot.Parent = G.WaveTogglePill_AntiDie
+local antiDieDotCorner = Instance.new("UICorner")
+antiDieDotCorner.CornerRadius = UDim.new(0, 6)
+antiDieDotCorner.Parent = antiDieDot
+local antiDieButton = Instance.new("TextButton")
+antiDieButton.BackgroundTransparency = 1
+antiDieButton.BorderSizePixel = 0
+antiDieButton.Size = UDim2.new(1, 0, 1, 0)
+antiDieButton.ZIndex = 9
+antiDieButton.Text = ""
+antiDieButton.Parent = G.WaveTogglePill_AntiDie
+
+wireNamedToggle(G.WaveTogglePill_AntiDie, false, setAntiDieEnabled)
 
 St.dropType = "Jump Drop" 
 St.dropKey = Enum.KeyCode.X
@@ -7372,11 +7427,9 @@ local function runDropBrainrot()
 	Drop.active = true
 	_G.dropActive = true
 	_G.IsDropping = true
-	_setActionAntiDieSource("drop", true)
 	setSideButtonState(G.StackBtn_drop, true, 0.08)
 	task.delay(0.3, function()
 		setSideButtonState(G.StackBtn_drop, false, 0.12)
-		_setActionAntiDieSource("drop", false)
 	end)
 	local startY = root.Position.Y
 	local startedAt = tick()
@@ -7391,7 +7444,6 @@ local function runDropBrainrot()
 			Drop.active = false
 			_G.dropActive = false
 			_G.IsDropping = false
-			_setActionAntiDieSource("drop", false)
 			return
 		end
 
@@ -7404,7 +7456,6 @@ local function runDropBrainrot()
 			Drop.active = false
 			_G.dropActive = false
 			_G.IsDropping = false
-			_setActionAntiDieSource("drop", false)
 			return
 		end
 
@@ -7437,11 +7488,9 @@ _G._VynxAutoTPDownEnabled = false
 _G._VynxAutoTPDownHeightTrigger = St.autoTpDownHeight
 
 local function runTPDown()
-	_setActionAntiDieSource("tpDown", true)
 	setSideButtonState(G.StackBtn_tpDown, true, 0.08)
 	task.delay(0.3, function()
 		setSideButtonState(G.StackBtn_tpDown, false, 0.12)
-		_setActionAntiDieSource("tpDown", false)
 	end)
 	pcall(function()
 		local c = LocalPlayer.Character
@@ -7841,7 +7890,6 @@ end
 stopBatAimbot = function()
 	_G._VezyBatAimbotOn = false
 	syncAimbotButtonVisual(false)
-	pcall(function() _setActionAntiDieSource("aimbot", false) end)
 	if Aim.conn then Aim.conn:Disconnect() Aim.conn = nil end
 	Aim.target, Aim.equipped = nil, false
 	local c = LocalPlayer.Character
@@ -7862,7 +7910,6 @@ startBatAimbot = function()
 	end
 	_G._VezyBatAimbotOn = true
 	syncAimbotButtonVisual(true)
-	pcall(function() _setActionAntiDieSource("aimbot", true) end)
 	Aim.equipped = false
 	Aim.nextTargetScan = 0
 	Aim.nextSwing = 0
@@ -9624,6 +9671,8 @@ local function resetConfigToggles()
 	St.speedToggled = false
 	St.laggerMode = 0
 	St.fpsBoostEnabled = false
+	pcall(setAntiDieEnabled, false)
+	if G.WaveTogglePill_AntiDie then setToggleVisual(G.WaveTogglePill_AntiDie, false) end
 	pcall(updateSpeedModeButton)
 	pcall(syncMobileSpeedVisuals)
 	_G._VynxAutoSpeedOn = false
@@ -9679,8 +9728,17 @@ local function saveWaveConfig()
 			uiPositions[key] = {xs=p.X.Scale, xo=p.X.Offset, ys=p.Y.Scale, yo=p.Y.Offset}
 		end
 	end
+	local sideToggleStates = {
+		["AUTO LEFT"] = AutoPath.L == true,
+		["AUTO RIGHT"] = AutoPath.R == true,
+		["AIMBOT"] = _G._VezyBatAimbotOn == true,
+		["CARRY SPEED"] = St.laggerMode == 0 and St.speedToggled == true,
+		["LAGGER NORMAL"] = St.laggerMode == 1,
+		["LAGGER CARRY"] = St.laggerMode == 2,
+	}
 	local data = {
-		configVersion = 5,
+		configVersion = 6,
+		sideToggleStates = sideToggleStates,
 		toggleStates = toggleStates,
 		sideButtonPositions = sideButtonPositions,
 		uiPositions = uiPositions,
@@ -9743,6 +9801,7 @@ local function saveWaveConfig()
 		stealDuration = St.stealDuration,
 		unwalkOn = St.unwalkOn,
 		kickWarningOn = G.WaveTogglePill_7 and (G.WaveTogglePill_7:GetAttribute("WaveToggleOn") == true) or false,
+		antiDieOn = G.WaveTogglePill_AntiDie and G.WaveTogglePill_AntiDie:GetAttribute("WaveToggleOn") == true or false,
 		ragdollTimerOn = St.ragdollTimerOn == true,
 		enemyRagdollTimerOn = St.enemyRagdollTimerOn == true,
 		antiLagOn = St.antiLagOn,
@@ -9902,6 +9961,7 @@ local function loadWaveConfig()
 		local legacyEnemyTimer = data.enemyRagdollTimerOn
 		if type(legacyEnemyTimer) ~= "boolean" then legacyEnemyTimer = data.ragdollTimerOn end
 		local legacyToggleValues = {
+			[G.WaveTogglePill_AntiDie] = data.antiDieOn,
 			[G.WaveTogglePill] = data.infJumpEnabled,
 			[G.WaveTogglePill_2] = data.autoCarryOn,
 			[G.WaveTogglePill_3] = data.antiRagdollEnabled,
@@ -9954,7 +10014,22 @@ local function loadWaveConfig()
 	end
 
 	
-	if data.batAimbotOn == true then pcall(startBatAimbot) else pcall(stopBatAimbot) end
+	local sideStates = type(data.sideToggleStates) == "table" and data.sideToggleStates or {}
+	local savedAimbot = sideStates["AIMBOT"]
+	if type(savedAimbot) ~= "boolean" then savedAimbot = data.batAimbotOn == true end
+	if savedAimbot then pcall(startBatAimbot) else pcall(stopBatAimbot) end
+	mobileToggles["AIMBOT"] = savedAimbot
+	if G.StackBtn_aimbot then setFrameOn(G.StackBtn_aimbot, savedAimbot) end
+	if type(sideStates["AUTO LEFT"]) == "boolean" then pcall(toggleAutoLeft, sideStates["AUTO LEFT"]) end
+	if type(sideStates["AUTO RIGHT"]) == "boolean" then pcall(toggleAutoRight, sideStates["AUTO RIGHT"]) end
+	if type(sideStates["LAGGER NORMAL"]) == "boolean" or type(sideStates["LAGGER CARRY"]) == "boolean" then
+		local wantedMode = sideStates["LAGGER CARRY"] and 2 or (sideStates["LAGGER NORMAL"] and 1 or 0)
+		pcall(setLaggerMode, wantedMode)
+	end
+	if type(sideStates["CARRY SPEED"]) == "boolean" and St.laggerMode == 0 then
+		St.speedToggled = sideStates["CARRY SPEED"]
+	end
+	pcall(syncMobileSpeedVisuals)
 
 	if type(data.animPack) == "string" and data.animPack ~= "" then
 		pcall(function()
