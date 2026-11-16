@@ -3852,7 +3852,7 @@ G.TextButton_48.BorderSizePixel = 0
 G.TextButton_48.Position = UDim2.new(1, -128, 0.5, -12)
 G.TextButton_48.Size = UDim2.new(0, 58, 0, 24)
 G.TextButton_48.FontFace = Font.new("rbxasset://fonts/families/GothamSSm.json", Enum.FontWeight.Heavy, Enum.FontStyle.Normal)
-G.TextButton_48.Text = "Normal"
+G.TextButton_48.Text = "75"
 G.TextButton_48.TextColor3 = Color3.fromRGB(249, 240, 255)
 G.TextButton_48.TextSize = 10
 G.TextButton_48.Parent = G.Frame_112
@@ -5706,17 +5706,87 @@ end
 
 
 
+local _noPlayerCollAcc = 0
+local function noPlayerCollision()
+	for _, plr in ipairs(Players:GetPlayers()) do
+		if plr ~= LocalPlayer then
+			local c = plr.Character
+			if c then
+				for _, d in ipairs(c:GetDescendants()) do
+					if d:IsA("BasePart") and d.CanCollide then
+						d.CanCollide = false
+					end
+				end
+			end
+		end
+	end
+end
+
+local function noCollideCarried()
+	local char = LocalPlayer.Character
+	if not char then return end
+	for _, child in ipairs(char:GetChildren()) do
+		if child:IsA("Model") then
+			for _, d in ipairs(child:GetDescendants()) do
+				if d:IsA("BasePart") then
+					d.CanCollide = false
+				end
+			end
+		end
+	end
+	for _, name in ipairs({"Carrying", "IsCarrying", "Grabbed", "Holding", "StealHold", "HasGrab"}) do
+		local obj = char:FindFirstChild(name)
+		if obj and obj:IsA("ObjectValue") and obj.Value and obj.Value:IsA("Model") then
+			for _, d in ipairs(obj.Value:GetDescendants()) do
+				if d:IsA("BasePart") then
+					d.CanCollide = false
+				end
+			end
+		end
+	end
+end
+
+local function applyNoCollisions()
+	noCollideCarried()
+	_noPlayerCollAcc += 1
+	if _noPlayerCollAcc >= 3 then
+		_noPlayerCollAcc = 0
+		noPlayerCollision()
+	end
+end
+
+local function getActiveSpeed()
+	if St.autoLeftEnabled or St.autoRightEnabled then
+		return math.max(1, tonumber(St.normalSpeed) or 60)
+	end
+	if St.laggerMode == 1 then
+		return math.max(1, tonumber(St.burstNormalSpeed) or 15)
+	end
+	if St.laggerMode == 2 then
+		return math.max(1, tonumber(St.burstCarrySpeed) or 10)
+	end
+	local stealing = false
+	pcall(function()
+		if LocalPlayer:GetAttribute("Stealing") == true then stealing = true end
+		local char = LocalPlayer.Character
+		if char and char:GetAttribute("Stealing") == true then stealing = true end
+	end)
+	if St.speedToggled or stealing or St._autoCarryHandoff then
+		return math.max(1, tonumber(St.carrySpeed) or 30)
+	end
+	return math.max(1, tonumber(St.normalSpeed) or 60)
+end
+
 local function autoPathSpeed()
-    local speed = (St.laggerMode == 1) and St.burstNormalSpeed or St.normalSpeed
-    return math.max(1, tonumber(speed) or 60)
+	return getActiveSpeed()
 end
 
 local function autoSpeed()
-    return autoPathSpeed()
+	return getActiveSpeed()
 end
 
 local function autoCarrySpeed()
-    return math.max(1, tonumber(St.carrySpeed) or 30)
+	return math.max(1, tonumber(St.carrySpeed) or 30)
 end
 
 local function autoStop(which)
@@ -5774,6 +5844,7 @@ local function autoStartLeft()
         if not AutoPath.L or not St.autoLeftEnabled then return end
         local root, hum = autoRootHumanoid()
         if not root or not hum or hum.Health <= 0 then return end
+        applyNoCollisions()
         local spd = autoPathSpeed()
 
         if AutoPath.phaseL == 1 then
@@ -5843,6 +5914,7 @@ local function autoStartRight()
         if not AutoPath.R or not St.autoRightEnabled then return end
         local root, hum = autoRootHumanoid()
         if not root or not hum or hum.Health <= 0 then return end
+        applyNoCollisions()
         local spd = autoPathSpeed()
 
         if AutoPath.phaseR == 1 then
@@ -6311,21 +6383,26 @@ do
 local _fps={descConn=nil,lightCache=nil,terrainCache=nil,baseParts={},effectsDisabled={},meshParts={},models={},attachments={}}
 local function processFPSObj(v)
 pcall(function()
-if v:IsA("Model")then
+local lpChar = LocalPlayer.Character
+if lpChar and v:IsDescendantOf(lpChar) then return end
+if v:IsA("Model") then
 if _fps.models[v]==nil then _fps.models[v]={LevelOfDetail=v.LevelOfDetail,ModelStreamingMode=v.ModelStreamingMode} end
-v.LevelOfDetail=Enum.ModelLevelOfDetail.Disabled;v.ModelStreamingMode=Enum.ModelStreamingMode.Nonatomic
-elseif v:IsA("MeshPart")then
-if _fps.meshParts[v]==nil then _fps.meshParts[v]={Material=v.Material,Reflectance=v.Reflectance,CastShadow=v.CastShadow,DoubleSided=v.DoubleSided,RenderFidelity=v.RenderFidelity}end
-v.CastShadow=false;v.DoubleSided=false;v.RenderFidelity=Enum.RenderFidelity.Performance
-elseif v:IsA("BasePart")then
-if _fps.baseParts[v]==nil then _fps.baseParts[v]={Material=v.Material,Reflectance=v.Reflectance,CastShadow=v.CastShadow}end
-v.CastShadow=false;v.Material=Enum.Material.Plastic;v.Reflectance=0
-elseif v:IsA("Fire")or v:IsA("SpotLight")or v:IsA("Smoke")or v:IsA("Sparkles")or v:IsA("ParticleEmitter")or v:IsA("Trail")or v:IsA("Beam")then
-if v.Enabled then table.insert(_fps.effectsDisabled,v)end;v.Enabled=false
-elseif v:IsA("Explosion")then v.BlastPressure=1;v.BlastRadius=1
-elseif v:IsA("Attachment")then
-if _fps.attachments[v]==nil then _fps.attachments[v]=v.Visible end
-v.Visible=false
+v.LevelOfDetail=Enum.ModelLevelOfDetail.Disabled
+v.ModelStreamingMode=Enum.ModelStreamingMode.Nonatomic
+elseif v:IsA("MeshPart") then
+if _fps.meshParts[v]==nil then _fps.meshParts[v]={CastShadow=v.CastShadow,DoubleSided=v.DoubleSided,RenderFidelity=v.RenderFidelity} end
+v.CastShadow=false
+v.DoubleSided=false
+pcall(function() v.RenderFidelity=Enum.RenderFidelity.Performance end)
+elseif v:IsA("BasePart") then
+if _fps.baseParts[v]==nil then _fps.baseParts[v]={CastShadow=v.CastShadow} end
+v.CastShadow=false
+elseif v:IsA("Fire") or v:IsA("SpotLight") or v:IsA("Smoke") or v:IsA("Sparkles") or v:IsA("ParticleEmitter") or v:IsA("Trail") or v:IsA("Beam") then
+if v.Enabled then table.insert(_fps.effectsDisabled,v) end
+v.Enabled=false
+elseif v:IsA("Explosion") then
+v.BlastPressure=1
+v.BlastRadius=1
 end
 end)
 end
@@ -6344,7 +6421,26 @@ if not _fps.terrainCache then _fps.terrainCache={WaterReflectance=terrain.WaterR
 end
 end)
 if _fps.descConn then _fps.descConn:Disconnect()end
-_fps.descConn=workspace.DescendantAdded:Connect(function(v)if St.fpsBoostEnabled then task.spawn(processFPSObj,v)end end)
+_fps._descQueue={}
+_fps._descScheduled=false
+local function flushFpsQueue()
+_fps._descScheduled=false
+if not St.fpsBoostEnabled then _fps._descQueue={} return end
+local q=_fps._descQueue
+_fps._descQueue={}
+for i,v in ipairs(q) do
+if v and v.Parent then processFPSObj(v) end
+if i%40==0 then task.wait() end
+end
+end
+_fps.descConn=workspace.DescendantAdded:Connect(function(v)
+if not St.fpsBoostEnabled then return end
+table.insert(_fps._descQueue,v)
+if not _fps._descScheduled then
+_fps._descScheduled=true
+task.defer(flushFpsQueue)
+end
+end)
 end
 local function disableFPSBoost()
 St.fpsBoostEnabled=false;if _fps.descConn then _fps.descConn:Disconnect();_fps.descConn=nil end
@@ -6649,9 +6745,7 @@ HIJACK.v = Vector3.zero
 _G._VioletteccFakeSpeed = tonumber(_G._VioletteccFakeSpeed) or 16
 
 _G._VioletteccGetSpeed = function()
-	if St.laggerMode == 1 then return St.burstNormalSpeed end
-	if St.laggerMode == 2 then return St.burstCarrySpeed end
-	return St.speedToggled and St.carrySpeed or St.normalSpeed
+	return getActiveSpeed()
 end
 
 if not _G._VelHijackInstalled then
@@ -6714,49 +6808,26 @@ end
 
 local function startMovement()
 	if moveConn then moveConn:Disconnect() moveConn = nil end
-	moveConn = RunService.PreSimulation:Connect(function()
+	moveConn = RunService.Heartbeat:Connect(function()
 		if _G._VYZECC_speedControllerToken ~= _speedControllerToken then return end
 		local c, h, r = _gc()
 		if not c or not h or not r then return end
 		if _G._VezyBatAimbotOn then return end
 		local st = h:GetState()
 		if h.PlatformStand or st == Enum.HumanoidStateType.Physics or st == Enum.HumanoidStateType.Ragdoll or st == Enum.HumanoidStateType.FallingDown then
-			local ragSpeed = St.laggerMode == 2 and St.burstCarrySpeed or St.burstNormalSpeed
-			local rs = math.max(0, tonumber(ragSpeed) or 0)
-			local dir = h.MoveDirection
-			if dir.Magnitude > 0.05 and rs > 0 then
-				local u = dir.Unit
-				r.AssemblyLinearVelocity = Vector3.new(u.X * rs, r.AssemblyLinearVelocity.Y, u.Z * rs)
-			else
-				r.AssemblyLinearVelocity = Vector3.new(0, r.AssemblyLinearVelocity.Y, 0)
-			end
+			return
+		end
+		if St.autoLeftEnabled or St.autoRightEnabled then
 			return
 		end
 		local dir = h.MoveDirection
-		if St.autoLeftEnabled or St.autoRightEnabled then
-			
-			return
-		end
+		local speed = getActiveSpeed()
+		if not speed or speed <= 0 then return end
 		if dir.Magnitude > 0.05 then
-			pcall(function() if r.SetNetworkOwner then r:SetNetworkOwner(LocalPlayer) end end)
-			local speed
-			local carryActive = St.speedToggled or LocalPlayer:GetAttribute("Stealing") == true
-			if St._autoCarryHandoff and carryActive then
-				speed = math.max(1, tonumber(St.carrySpeed) or 30)
-			elseif St.laggerMode == 1 then
-				speed = math.max(1, tonumber(St.burstNormalSpeed) or 15)
-			elseif St.laggerMode == 2 then
-				speed = math.max(1, tonumber(St.burstCarrySpeed) or 10)
-			elseif carryActive then
-				speed = math.max(1, tonumber(St.carrySpeed) or 30)
-			else
-				speed = math.max(1, tonumber(St.normalSpeed) or 60)
-			end
-			
-			
-			if St.autoLeftEnabled or St.autoRightEnabled then
-				
-			end
+			applyNoCollisions()
+			pcall(function()
+				if r.SetNetworkOwner then r:SetNetworkOwner(LocalPlayer) end
+			end)
 			local u = dir.Unit
 			r.AssemblyLinearVelocity = Vector3.new(u.X * speed, r.AssemblyLinearVelocity.Y, u.Z * speed)
 			St.lastMoveDir = u
@@ -7579,6 +7650,19 @@ St.autoTpDownHeight = tonumber(G.TextBox_6 and G.TextBox_6.Text) or 20
 _G._VynxAutoTPDownEnabled = false
 _G._VynxAutoTPDownHeightTrigger = St.autoTpDownHeight
 
+local function resolveAimbotSpeedForTp()
+	if _G._VezyBatSpeedEnabled then
+		if St.laggerMode ~= 0 then
+			return math.clamp(tonumber(_G._VezyBatAimbotSpeedLagger) or 40, 1, 200)
+		end
+		return math.clamp(tonumber(_G._VezyBatAimbotSpeed) or 58, 1, 200)
+	end
+	if St.laggerMode == 1 or St.laggerMode == 2 then
+		return math.clamp(tonumber(St.burstNormalSpeed) or 15, 1, 200)
+	end
+	return math.clamp(tonumber(St.normalSpeed) or 60, 1, 200)
+end
+
 local function runTPDown()
 	setSideButtonState(G.StackBtn_tpDown, true, 0.08)
 	task.delay(0.3, function()
@@ -7588,11 +7672,52 @@ local function runTPDown()
 		local c = LocalPlayer.Character
 		if not c then return end
 		local hrp = c:FindFirstChild("HumanoidRootPart")
+		local hum = c:FindFirstChildOfClass("Humanoid")
 		if not hrp then return end
+		local aimbotOn = _G._VezyBatAimbotOn == true
 		St._tpInProgress = true
-		hrp.CFrame = CFrame.new(hrp.Position.X, -7.00, hrp.Position.Z)
-			* CFrame.Angles(0, select(2, hrp.CFrame:ToEulerAnglesYXZ()), 0)
-		task.delay(0.1, function() St._tpInProgress = false end)
+		St._tpAimbotKeep = aimbotOn
+		local yaw = select(2, hrp.CFrame:ToEulerAnglesYXZ())
+		local prevVel = hrp.AssemblyLinearVelocity
+		local prevHoriz = Vector3.new(prevVel.X, 0, prevVel.Z)
+
+		hrp.CFrame = CFrame.new(hrp.Position.X, -7.00, hrp.Position.Z) * CFrame.Angles(0, yaw, 0)
+
+		if aimbotOn then
+			local spd = resolveAimbotSpeedForTp()
+			local horiz = prevHoriz
+			if horiz.Magnitude < 1 then
+				local best, bestDist = nil, 120
+				for _, p in ipairs(Players:GetPlayers()) do
+					if p ~= LocalPlayer and p.Character then
+						local tr = p.Character:FindFirstChild("HumanoidRootPart")
+						local hm = p.Character:FindFirstChildOfClass("Humanoid")
+						if tr and hm and hm.Health > 0 then
+							local d = (tr.Position - hrp.Position).Magnitude
+							if d < bestDist then best, bestDist = tr, d end
+						end
+					end
+				end
+				if best then
+					local flat = Vector3.new(best.Position.X - hrp.Position.X, 0, best.Position.Z - hrp.Position.Z)
+					if flat.Magnitude > 0.05 then horiz = flat.Unit * spd end
+				end
+			else
+				horiz = horiz.Unit * spd
+			end
+			hrp.AssemblyLinearVelocity = Vector3.new(horiz.X, math.clamp(prevVel.Y, -40, 40), horiz.Z)
+			if hum then
+				pcall(function()
+					hum.PlatformStand = false
+					hum.AutoRotate = false
+				end)
+			end
+		end
+
+		task.delay(0.18, function()
+			St._tpInProgress = false
+			St._tpAimbotKeep = false
+		end)
 	end)
 end
 
@@ -7831,12 +7956,16 @@ if G.TextButton_42 then G.TextButton_42.Text = bindingText("aimbot"); G.TextButt
 if G.TextButton_42 then G.TextButton_42.MouseButton1Click:Connect(function() startRebind("aimbot", G.TextButton_42) end) end
 
 local function aimbotSpeed()
-	
-	
-	if St.laggerMode ~= 0 then
-		return math.clamp(tonumber(_G._VezyBatAimbotSpeedLagger) or 40, 1, 200)
+	if _G._VezyBatSpeedEnabled then
+		if St.laggerMode ~= 0 then
+			return math.clamp(tonumber(_G._VezyBatAimbotSpeedLagger) or 40, 1, 200)
+		end
+		return math.clamp(tonumber(_G._VezyBatAimbotSpeed) or 58, 1, 200)
 	end
-	return math.clamp(tonumber(_G._VezyBatAimbotSpeed) or 58, 1, 200)
+	if St.laggerMode == 1 or St.laggerMode == 2 then
+		return math.clamp(tonumber(St.burstNormalSpeed) or 15, 1, 200)
+	end
+	return math.clamp(tonumber(St.normalSpeed) or 60, 1, 200)
 end
 
 local function isBatTool(tool)
@@ -7900,6 +8029,9 @@ local function stepNormal(root, hum, target)
 	local vertical = (targetPosition.Y + 3.7 - root.Position.Y) * 19.5 + targetVelocity.Y * 0.8
 	if hum.FloorMaterial ~= Enum.Material.Air then vertical = math.max(vertical, 13) end
 	vertical = math.clamp(vertical, -70, 110)
+	if St._tpInProgress or St._tpAimbotKeep then
+		vertical = math.clamp(root.AssemblyLinearVelocity.Y, -35, 55)
+	end
 	local speed = aimbotSpeed()
 	root.AssemblyLinearVelocity = root.AssemblyLinearVelocity:Lerp(
 		Vector3.new(flat.X * speed, vertical, flat.Z * speed), 0.8
@@ -7972,6 +8104,9 @@ local function stepBypass(root, hum, target)
 	local yVel = (them.Y + 3.7 - me.Y) * 19.5 + targetVel.Y * 0.8
 	if hum.FloorMaterial ~= Enum.Material.Air then yVel = math.max(yVel, 13) end
 	yVel = math.clamp(yVel, -70, 110)
+	if St._tpInProgress or St._tpAimbotKeep then
+		yVel = math.clamp(root.AssemblyLinearVelocity.Y, -35, 55)
+	end
 	local desiredVel = Vector3.new(flatDir.X * spd, yVel, flatDir.Z * spd)
 	root.AssemblyLinearVelocity = root.AssemblyLinearVelocity:Lerp(desiredVel, 0.8)
 	local predictTime = math.clamp(targetVel.Magnitude / 150, 0.05, 0.2)
@@ -8044,6 +8179,7 @@ startBatAimbot = function()
 			return
 		end
 		hum.AutoRotate = false
+		if hum.PlatformStand then hum.PlatformStand = false end
 
 		local useBypass = (_G._VezyBatAimbotMode == "old")
 		if useBypass then
@@ -8672,7 +8808,7 @@ _G.VYZECC_StartBypassV1 = startNetBypass
 _G.VYZECC_StopBypassV1 = stopNetBypass
 
 St.autoStealOn = false
-St.autoStealVersion = "Normal"
+St.autoStealVersion = "75"
 St.ragdollStealOn = false
 St.ragdollStealPauseUntil = 0
 St.stealRadius = tonumber(G.TextBox_10 and G.TextBox_10.Text) or 60
@@ -8793,9 +8929,50 @@ end
 
 
 
-local STEAL_MODE = 75              
-local ACTIVATION_RANGE = 9         
+local STOP_TIME_MODES = {75, 80, 85, 90}
+local stopTimeModeIdx = 1
+local STEAL_MODE = STOP_TIME_MODES[stopTimeModeIdx]
+local ACTIVATION_RANGE = 9
 local stealData = setmetatable({}, {__mode = "k"})
+local autoStealGeneration = 0
+local isStealing = false
+local autoStealStartedAt = 0
+
+local function setStopTimeMode(mode)
+	local n = tonumber(mode)
+	if not n then
+		local s = tostring(mode or "")
+		if s == "V1" then n = 75
+		elseif s == "V2" then n = 80
+		elseif s == "Normal" then n = 75
+		else n = 75 end
+	end
+	local idx = 1
+	for i, v in ipairs(STOP_TIME_MODES) do
+		if v == n then idx = i; break end
+	end
+	stopTimeModeIdx = idx
+	STEAL_MODE = STOP_TIME_MODES[stopTimeModeIdx]
+	St.autoStealVersion = tostring(STEAL_MODE)
+	if G.TextButton_48 then
+		G.TextButton_48.Text = tostring(STEAL_MODE)
+		G.TextButton_48.Visible = true
+		G.TextButton_48.Active = true
+	end
+end
+
+local function cycleStopTimeMode()
+	stopTimeModeIdx = stopTimeModeIdx % #STOP_TIME_MODES + 1
+	setStopTimeMode(STOP_TIME_MODES[stopTimeModeIdx])
+	if type(_G.VYZECC_SaveConfig) == "function" then
+		task.defer(function() pcall(_G.VYZECC_SaveConfig) end)
+	end
+end
+
+local function getAutoStealStopTime(duration)
+	duration = math.max(0.05, tonumber(duration) or tonumber(St.stealDuration) or 1.35)
+	return duration * (STEAL_MODE / 100)
+end
 
 local function getStealRoot()
 	local char = LocalPlayer.Character
@@ -8814,9 +8991,9 @@ end
 local function findStealTarget()
 	local root = getStealRoot()
 	local plots = workspace:FindFirstChild("Plots")
-	if not (root and plots) then return nil end
+	if not (root and plots) then return nil, nil end
 	local radius = tonumber(St.stealRadius) or 60
-	local best, bestDist = nil, math.huge
+	local best, bestDist, bestName = nil, math.huge, nil
 	for _, plot in ipairs(plots:GetChildren()) do
 		if not isOwnPlot(plot.Name) then
 			local podiums = plot:FindFirstChild("AnimalPodiums")
@@ -8831,7 +9008,7 @@ local function findStealTarget()
 							if attachment then
 								for _, child in ipairs(attachment:GetChildren()) do
 									if child:IsA("ProximityPrompt") and child.ActionText and child.ActionText:find("Steal") then
-										best, bestDist = child, d
+										best, bestDist, bestName = child, d, podium.Name
 									end
 								end
 							end
@@ -8841,11 +9018,12 @@ local function findStealTarget()
 			end
 		end
 	end
-	return best
+	return best, bestName
 end
 
-local function runAutoStealOnce(prompt)
+local function runAutoStealOnce(prompt, podName)
 	if not prompt or not prompt.Parent then return end
+	if isStealing or autoStealBusy then return end
 	local data = stealData[prompt]
 	if not data then
 		data = {hold = {}, trigger = {}, ready = true}
@@ -8865,74 +9043,120 @@ local function runAutoStealOnce(prompt)
 
 	data.ready = false
 	autoStealBusy = true
+	isStealing = true
+	local generation = autoStealGeneration
+	autoStealStartedAt = tick()
 
 	task.spawn(function()
 		local function finish(progress)
 			setStealProgress(progress or 0)
 			data.ready = true
 			autoStealBusy = false
+			if generation == autoStealGeneration then
+				isStealing = false
+				autoStealStartedAt = 0
+			end
+		end
+
+		local function stillActive()
+			return generation == autoStealGeneration and St.autoStealOn and isStealing
+		end
+
+		local function promptDistance()
+			if not prompt.Parent then return nil end
+			local root = getStealRoot()
+			local hum = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+			if not root or not hum or hum.Health <= 0 then return nil end
+			local parent = prompt.Parent
+			local part = parent:IsA("BasePart") and parent or parent.Parent
+			if not part or not part:IsA("BasePart") then return nil end
+			return (root.Position - part.Position).Magnitude
+		end
+
+		local function valid()
+			if not stillActive() then return false end
+			local d = promptDistance()
+			local radius = tonumber(St.stealRadius) or 60
+			return d ~= nil and d <= radius
 		end
 
 		local ok, err = pcall(function()
-			local duration = math.max(0.05, tonumber(St.stealDuration) or 1.4)
-			local ratio = STEAL_MODE / 100
-			local holdTime = ratio * duration
-			local rest = math.max(0.01, duration - holdTime)
+			local duration = math.max(0.05, tonumber(St.stealDuration) or 1.35)
+			local stopTime = getAutoStealStopTime(duration)
+			local stopProgress = math.clamp(stopTime / duration, 0, 1)
 
 			local function runProgressCycle()
 				setStealProgress(0)
-				for _, cb in ipairs(data.hold) do pcall(cb) end
+				for _, cb in ipairs(data.hold) do task.spawn(function() pcall(cb) end) end
 
-				
 				local startedAt = tick()
-				while St.autoStealOn do
+				while stillActive() do
 					if waitForRagdollStealClear() then return "restart" end
-					if not St.autoStealOn then return "stopped" end
+					if not stillActive() then return "stopped" end
+					if not valid() then return "missed" end
 					local elapsed = tick() - startedAt
-					setStealProgress(math.min(elapsed / duration, ratio))
-					if elapsed >= holdTime then break end
+					setStealProgress(math.min(elapsed / duration, stopProgress))
+					if elapsed >= stopTime then break end
 					task.wait()
 				end
-				if not St.autoStealOn then return "stopped" end
-				setStealProgress(ratio)
+				if not stillActive() then return "stopped" end
+				if not valid() then return "missed" end
+				setStealProgress(stopProgress)
 
-				
 				local reached = false
-				local waitStart = tick()
-				while St.autoStealOn and tick() - waitStart < 2.99 do
+				local deadline = tick() + math.max(2.99 - stopTime - math.max(duration - stopTime, 0), 0.05)
+				while stillActive() do
 					if waitForRagdollStealClear() then return "restart" end
-					if not St.autoStealOn then return "stopped" end
-					local root = getStealRoot()
-					local podium = prompt.Parent and prompt.Parent.Parent
-					if root and podium and podium:IsA("BasePart") then
-						local distance = (root.Position - podium.Position).Magnitude
-						if distance <= ACTIVATION_RANGE then reached = true; break end
-						if distance > (tonumber(St.stealRadius) or 60) then return "missed" end
+					if not stillActive() then return "stopped" end
+					local d = promptDistance()
+					if d and d <= ACTIVATION_RANGE then
+						reached = true
+						break
 					end
+					if not d or d > (tonumber(St.stealRadius) or 60) then return "missed" end
+					if tick() >= deadline then break end
 					task.wait()
 				end
 				if not reached then return "missed" end
+				if not stillActive() then return "stopped" end
 
-				
-				local phaseStart = tick()
-				while St.autoStealOn do
+				local fillStart = tick()
+				local fillDuration = math.max(duration - stopTime, 0.05)
+				while stillActive() do
 					if waitForRagdollStealClear() then return "restart" end
-					if not St.autoStealOn then return "stopped" end
-					local progress = math.min(ratio + (tick() - phaseStart) / rest * (1 - ratio), 1)
-					setStealProgress(progress)
-					if progress >= 1 then break end
+					if not stillActive() then return "stopped" end
+					if not valid() then return "missed" end
+					local fp = math.clamp((tick() - fillStart) / fillDuration, 0, 1)
+					setStealProgress(stopProgress + fp * (1 - stopProgress))
+					if fp >= 1 then break end
 					task.wait()
 				end
-				if not St.autoStealOn then return "stopped" end
+				if not stillActive() then return "stopped" end
+				if not valid() then return "missed" end
 
 				setStealProgress(1)
-				for _, cb in ipairs(data.trigger) do pcall(cb) end
-				if type(fireproximityprompt) == "function" then pcall(fireproximityprompt, prompt, 0) end
-				task.wait(0.05)
+				for _, cb in ipairs(data.trigger) do task.spawn(function() pcall(cb) end) end
+				local remote = game:GetService("ReplicatedStorage"):FindFirstChild("StealAnimal")
+				if remote and remote:IsA("RemoteEvent") and podName then
+					pcall(function() remote:FireServer(podName) end)
+				end
+				if #data.trigger == 0 then
+					if type(fireproximityprompt) == "function" then
+						pcall(fireproximityprompt, prompt)
+					else
+						pcall(function()
+							prompt:InputHoldBegin()
+							prompt:InputHoldEnd()
+						end)
+					end
+				elseif type(fireproximityprompt) == "function" then
+					pcall(fireproximityprompt, prompt, 0)
+				end
+				task.wait(0.12)
 				return "done"
 			end
 
-			while St.autoStealOn do
+			while stillActive() do
 				local result = runProgressCycle()
 				if result == "restart" then
 					setStealProgress(0)
@@ -8945,7 +9169,7 @@ local function runAutoStealOnce(prompt)
 			finish(0)
 		end)
 		if not ok then
-			warn("Auto Steal error: " .. tostring(err))
+			warn("[VYZECC Auto Steal] " .. tostring(err))
 			finish(0)
 		end
 	end)
@@ -8953,23 +9177,49 @@ end
 
 local function startAutoSteal()
 	if autoStealConn then return end
+	St.autoStealOn = true
 	local acc = 0
 	autoStealConn = RunService.Heartbeat:Connect(function(dt)
-		if not St.autoStealOn or autoStealBusy then return end
+		if not St.autoStealOn then return end
+		if isStealing or autoStealBusy then
+			if autoStealStartedAt > 0 and (tick() - autoStealStartedAt) > 6 then
+				autoStealGeneration = autoStealGeneration + 1
+				isStealing = false
+				autoStealBusy = false
+				autoStealStartedAt = 0
+				for _, data in pairs(stealData) do
+					if type(data) == "table" then data.ready = true end
+				end
+				setStealProgress(0)
+			end
+			return
+		end
 		acc = acc + dt
 		if acc < 0.05 then return end
 		acc = 0
-		local ok, target = pcall(findStealTarget)
-		if ok and target then pcall(runAutoStealOnce, target) end
+		local target, podName = nil, nil
+		local ok = pcall(function()
+			target, podName = findStealTarget()
+		end)
+		if ok and target then
+			pcall(runAutoStealOnce, target, podName)
+		end
 	end)
 end
 
 local function stopAutoSteal()
 	St.autoStealOn = false
+	autoStealGeneration = autoStealGeneration + 1
+	isStealing = false
+	autoStealBusy = false
+	autoStealStartedAt = 0
 	ragdollStealPauseUntil = 0
 	St.ragdollStealPauseUntil = 0
 	ragdollStealStateLatched = false
-	if autoStealConn then autoStealConn:Disconnect() autoStealConn = nil end
+	if autoStealConn then autoStealConn:Disconnect(); autoStealConn = nil end
+	for _, data in pairs(stealData) do
+		if type(data) == "table" then data.ready = true end
+	end
 	setStealProgress(0)
 end
 
@@ -8983,16 +9233,19 @@ wireNamedToggle(G.VyzeccTogglePill_28, false, function(on)
 end)
 
 wireNamedToggle(G.VyzeccTogglePill_29, false, function(on)
-	St.autoStealOn = on
 	if on then startAutoSteal() else stopAutoSteal() end
 end)
 
-St.autoStealVersion = "Normal"
+setStopTimeMode(St.autoStealVersion or "75")
 if G.TextButton_48 then
-	
-	G.TextButton_48.Visible = false
-	G.TextButton_48.Active = false
+	G.TextButton_48.Visible = true
+	G.TextButton_48.Active = true
+	G.TextButton_48.Text = tostring(STEAL_MODE)
+	G.TextButton_48.Activated:Connect(function()
+		cycleStopTimeMode()
+	end)
 end
+
 
 St.batCounterOn = false
 St.medusaCounterOn = false
@@ -9303,11 +9556,19 @@ local removeAccessoriesEnabled=false
 local antiLagDescConn=nil
 local function applyAntiLagDerender(obj)
 pcall(function()
-if obj:IsA("Accessory")or obj:IsA("Hat")then obj:Destroy()
-elseif obj:IsA("BasePart")then obj.Material=Enum.Material.Plastic;obj.Reflectance=0;obj.CastShadow=false
-elseif obj:IsA("Decal")or obj:IsA("Texture")then obj.Transparency=1
-elseif obj:IsA("ParticleEmitter")or obj:IsA("Trail")or obj:IsA("Beam")or obj:IsA("Fire")or obj:IsA("Smoke")or obj:IsA("Sparkles")then obj.Enabled=false
-elseif obj:IsA("AnimationController")or obj:IsA("Animator")then for _,t in ipairs(obj:GetPlayingAnimationTracks())do pcall(function()t:Stop(0)end)end end
+local lpChar = LocalPlayer.Character
+if lpChar and obj:IsDescendantOf(lpChar) then return end
+if obj:IsA("Accessory") or obj:IsA("Hat") then
+	if obj.Parent and obj.Parent:IsA("Model") and Players:GetPlayerFromCharacter(obj.Parent) then
+		obj:Destroy()
+	end
+elseif obj:IsA("BasePart") then
+	obj.CastShadow = false
+elseif obj:IsA("Decal") or obj:IsA("Texture") then
+	obj.Transparency = 1
+elseif obj:IsA("ParticleEmitter") or obj:IsA("Trail") or obj:IsA("Beam") or obj:IsA("Fire") or obj:IsA("Smoke") or obj:IsA("Sparkles") then
+	obj.Enabled = false
+end
 end)
 end
 local function enableAntiLag()
@@ -9329,8 +9590,25 @@ local antiLagObjects=workspace:GetDescendants()
 for i,obj in ipairs(antiLagObjects)do applyAntiLagDerender(obj);if i%180==0 then task.wait()end end
 antiLagObjects=nil
 if antiLagDescConn then antiLagDescConn:Disconnect()end
+local _alQueue={}
+local _alSched=false
+local function flushAntiLagQueue()
+_alSched=false
+if not removeAccessoriesEnabled then _alQueue={} return end
+local q=_alQueue
+_alQueue={}
+for i,obj in ipairs(q) do
+if obj and obj.Parent then applyAntiLagDerender(obj) end
+if i%50==0 then task.wait() end
+end
+end
 antiLagDescConn=workspace.DescendantAdded:Connect(function(obj)
-if removeAccessoriesEnabled then applyAntiLagDerender(obj)end
+if not removeAccessoriesEnabled then return end
+table.insert(_alQueue,obj)
+if not _alSched then
+_alSched=true
+task.defer(flushAntiLagQueue)
+end
 end)
 end
 local function disableAntiLag()
@@ -9990,7 +10268,10 @@ local function loadVyzeccConfig()
 	if type(data.speedToggled) == "boolean" then St.speedToggled = data.speedToggled end
 	if data.laggerMode ~= nil then St.laggerMode = data.laggerMode end
 	if type(data.autoCarryMode) == "string" then St.autoCarryMode = data.autoCarryMode; if G.TextButton_9 then G.TextButton_9.Text = data.autoCarryMode end end
-	if type(data.autoStealVersion) == "string" then St.autoStealVersion = data.autoStealVersion end
+	if type(data.autoStealVersion) == "string" then
+		St.autoStealVersion = data.autoStealVersion
+		if type(setStopTimeMode) == "function" then pcall(setStopTimeMode, data.autoStealVersion) end
+	end
 	St.unlockButtons = data.unlockButtons == true
 	St.unlockButtonPanel = data.unlockButtonPanel == true
 	St.hideButtons = data.hideButtons == true
