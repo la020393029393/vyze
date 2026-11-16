@@ -13,7 +13,7 @@ G.MainOuter.Name = "MainOuter"
 G.MainOuter.BackgroundColor3 = Color3.fromRGB(18, 8, 28)
 G.MainOuter.BorderSizePixel = 0
 G.MainOuter.ClipsDescendants = true
-G.MainOuter.Position = UDim2.new(0, 28, 0, 42)
+G.MainOuter.Position = UDim2.new(0, 16, 0, 72)
 G.MainOuter.Size = UDim2.new(0, 280, 0, 48)
 G.MainOuter.Visible = false
 G.MainOuter.Parent = G.VYZECCHubV1
@@ -4592,7 +4592,61 @@ G.TextButton_57.ZIndex = 9
 G.TextButton_57.Text = ""
 G.TextButton_57.Parent = G.VyzeccTogglePill_35
 
+G.Frame_PromoterMode = Instance.new("Frame")
+G.Frame_PromoterMode.Name = "Frame_PromoterMode"
+G.Frame_PromoterMode.BackgroundColor3 = Color3.fromRGB(22, 10, 38)
+G.Frame_PromoterMode.BackgroundTransparency = 1
+G.Frame_PromoterMode.BorderSizePixel = 0
+G.Frame_PromoterMode.LayoutOrder = 9
+G.Frame_PromoterMode.Size = UDim2.new(1, 0, 0, 40)
+G.Frame_PromoterMode.Parent = G.VyzeccPage_Interface
 
+G.TextLabel_PromoterMode = Instance.new("TextLabel")
+G.TextLabel_PromoterMode.BackgroundTransparency = 1
+G.TextLabel_PromoterMode.Position = UDim2.new(0, 12, 0, 0)
+G.TextLabel_PromoterMode.Size = UDim2.new(1, -64, 1, 0)
+G.TextLabel_PromoterMode.FontFace = Font.new("rbxasset://fonts/families/GothamSSm.json", Enum.FontWeight.Heavy, Enum.FontStyle.Normal)
+G.TextLabel_PromoterMode.Text = "Promoter Mode"
+G.TextLabel_PromoterMode.TextColor3 = Color3.fromRGB(234, 225, 240)
+G.TextLabel_PromoterMode.TextSize = 11
+G.TextLabel_PromoterMode.TextXAlignment = Enum.TextXAlignment.Left
+G.TextLabel_PromoterMode.Parent = G.Frame_PromoterMode
+
+G.VyzeccTogglePill_Promoter = Instance.new("Frame")
+G.VyzeccTogglePill_Promoter.Name = "VyzeccTogglePill"
+G.VyzeccTogglePill_Promoter.BackgroundColor3 = Color3.fromRGB(24, 12, 40)
+G.VyzeccTogglePill_Promoter.BorderSizePixel = 0
+G.VyzeccTogglePill_Promoter.Position = UDim2.new(1, -54, 0.5, -9)
+G.VyzeccTogglePill_Promoter.Size = UDim2.new(0, 40, 0, 18)
+G.VyzeccTogglePill_Promoter.ZIndex = 7
+G.VyzeccTogglePill_Promoter:SetAttribute("VyzeccToggleOn", false)
+G.VyzeccTogglePill_Promoter.Parent = G.Frame_PromoterMode
+
+local promoterCorner = Instance.new("UICorner")
+promoterCorner.CornerRadius = UDim.new(0, 9)
+promoterCorner.Parent = G.VyzeccTogglePill_Promoter
+local promoterStroke = Instance.new("UIStroke")
+promoterStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+promoterStroke.Color = Color3.fromRGB(55, 25, 90)
+promoterStroke.Parent = G.VyzeccTogglePill_Promoter
+local promoterDot = Instance.new("Frame")
+promoterDot.Name = "VyzeccToggleDot"
+promoterDot.BackgroundColor3 = Color3.fromRGB(40, 20, 70)
+promoterDot.BorderSizePixel = 0
+promoterDot.Position = UDim2.new(0, 3, 0.5, -6)
+promoterDot.Size = UDim2.new(0, 12, 0, 12)
+promoterDot.ZIndex = 8
+promoterDot.Parent = G.VyzeccTogglePill_Promoter
+local promoterDotCorner = Instance.new("UICorner")
+promoterDotCorner.CornerRadius = UDim.new(0, 6)
+promoterDotCorner.Parent = promoterDot
+local promoterBtn = Instance.new("TextButton")
+promoterBtn.BackgroundTransparency = 1
+promoterBtn.BorderSizePixel = 0
+promoterBtn.Size = UDim2.new(1, 0, 1, 0)
+promoterBtn.ZIndex = 9
+promoterBtn.Text = ""
+promoterBtn.Parent = G.VyzeccTogglePill_Promoter
 
 G.Frame_137 = Instance.new("Frame")
 G.Frame_137.BackgroundColor3 = Color3.fromRGB(22, 10, 38)
@@ -4866,8 +4920,8 @@ G.VyzeccMiniRestoreButton.Name = "VyzeccMiniRestoreButton"
 G.VyzeccMiniRestoreButton.BackgroundColor3 = Color3.fromRGB(18, 8, 28)
 G.VyzeccMiniRestoreButton.BackgroundTransparency = 0.08
 G.VyzeccMiniRestoreButton.BorderSizePixel = 0
-G.VyzeccMiniRestoreButton.Position = UDim2.new(0, 98, 0, 68)
-G.VyzeccMiniRestoreButton.Size = UDim2.new(0, 52, 0, 52)
+G.VyzeccMiniRestoreButton.Position = UDim2.new(0, 8, 0.5, -40)
+G.VyzeccMiniRestoreButton.Size = UDim2.new(0, 44, 0, 44)
 G.VyzeccMiniRestoreButton.ZIndex = 150
 G.VyzeccMiniRestoreButton.Image = "rbxthumb://type=Asset&id=117439302562449&w=420&h=420"
 G.VyzeccMiniRestoreButton.ImageTransparency = 0
@@ -6163,6 +6217,18 @@ end
 
 
 local mainDrag = makeDraggable(G.MainOuter, G.HeaderBar, function() return St.uiLocked == true end, {sensitivity = 1, threshold = 0})
+-- persist main hub position
+do
+	local lastSave = 0
+	G.MainOuter:GetPropertyChangedSignal("Position"):Connect(function()
+		local now = os.clock()
+		if now - lastSave < 0.35 then return end
+		lastSave = now
+		if type(_G.VYZECC_SaveConfig) == "function" then
+			task.defer(function() pcall(_G.VYZECC_SaveConfig) end)
+		end
+	end)
+end
 
 local stealDrag = makeDraggable(StealBarRoot, StealBarRoot, function() return St.uiLocked == true end, {sensitivity = 1, threshold = 6, keepOnScreen = true})
 if G.MobileStackPanel then G.MobileStackPanel.Active = true end
@@ -6450,6 +6516,240 @@ end)
 end
 
 if G.Frame_62 then G.Frame_62.Visible = false end
+end
+
+
+do
+	local Promoter = {
+		enabled = false,
+		locked = false,
+		gui = nil,
+		frame = nil,
+		position = UDim2.new(0.5, -105, 0, 10),
+	}
+	St.promoterModeOn = false
+	St.promoterLocked = false
+	St.promoterPosition = { xs = 0.5, xo = -105, ys = 0, yo = 10 }
+
+	local function savePromoterPos()
+		if not Promoter.frame then return end
+		local p = Promoter.frame.Position
+		St.promoterPosition = {
+			xs = p.X.Scale, xo = p.X.Offset,
+			ys = p.Y.Scale, yo = p.Y.Offset,
+		}
+		Promoter.position = p
+		if type(_G.VYZECC_SaveConfig) == "function" then
+			task.defer(function() pcall(_G.VYZECC_SaveConfig) end)
+		end
+	end
+
+	local function applySavedPos()
+		local pos = St.promoterPosition
+		if type(pos) == "table" then
+			local xs = tonumber(pos.xs)
+			local xo = tonumber(pos.xo)
+			local ys = tonumber(pos.ys)
+			local yo = tonumber(pos.yo)
+			if xs and xo and ys and yo then
+				-- migra vecchia pos al centro schermo verso alto-centro
+				if ys == 0.5 and (yo == -18 or yo == -48 or yo == -105) then
+					ys, yo = 0, 10
+				end
+				Promoter.position = UDim2.new(xs, xo, ys, yo)
+				St.promoterPosition = { xs = xs, xo = xo, ys = ys, yo = yo }
+			end
+		else
+			Promoter.position = UDim2.new(0.5, -105, 0, 10)
+			St.promoterPosition = { xs = 0.5, xo = -105, ys = 0, yo = 10 }
+		end
+		if Promoter.frame then
+			Promoter.frame.Position = Promoter.position
+		end
+	end
+
+	local function destroyPromoterGui()
+		if Promoter.gui then
+			pcall(function() Promoter.gui:Destroy() end)
+		end
+		Promoter.gui, Promoter.frame, Promoter.mini = nil, nil, nil
+	end
+
+	local function createPromoterGui()
+		destroyPromoterGui()
+		local gui = Instance.new("ScreenGui")
+		gui.Name = "VyzeccPromoterMode"
+		gui.ResetOnSpawn = false
+		gui.IgnoreGuiInset = true
+		gui.DisplayOrder = 2147483646
+		gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+		pcall(function()
+			gui.Parent = game:GetService("CoreGui")
+		end)
+		if not gui.Parent then
+			gui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+		end
+
+		local cardVisible = true
+
+		local frame = Instance.new("Frame")
+		frame.Name = "PromoterCard"
+		frame.Size = UDim2.new(0, 210, 0, 36)
+		applySavedPos()
+		frame.Position = Promoter.position
+		frame.BackgroundColor3 = Color3.fromRGB(18, 8, 28)
+		frame.BorderSizePixel = 0
+		frame.Active = true
+		frame.ClipsDescendants = true
+		frame.ZIndex = 50
+		frame.Parent = gui
+		Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 10)
+
+		local stroke = Instance.new("UIStroke")
+		stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+		stroke.Color = Color3.fromRGB(160, 80, 220)
+		stroke.Thickness = 1.2
+		stroke.Parent = frame
+
+		local discord = Instance.new("TextLabel")
+		discord.BackgroundTransparency = 1
+		discord.Position = UDim2.new(0, 10, 0, 0)
+		discord.Size = UDim2.new(1, -48, 1, 0)
+		discord.FontFace = Font.new("rbxasset://fonts/families/GothamSSm.json", Enum.FontWeight.Heavy, Enum.FontStyle.Normal)
+		discord.Text = "discord.gg/XNByTnwf25"
+		discord.TextColor3 = Color3.fromRGB(249, 240, 255)
+		discord.TextSize = 13
+		discord.TextXAlignment = Enum.TextXAlignment.Left
+		discord.TextYAlignment = Enum.TextYAlignment.Center
+		discord.ZIndex = 51
+		discord.Parent = frame
+
+		local lockBtn = Instance.new("TextButton")
+		lockBtn.Name = "LockBtn"
+		lockBtn.Size = UDim2.new(0, 34, 0, 22)
+		lockBtn.Position = UDim2.new(1, -38, 0.5, -11)
+		lockBtn.BackgroundColor3 = Color3.fromRGB(28, 12, 48)
+		lockBtn.BorderSizePixel = 0
+		lockBtn.AutoButtonColor = false
+		lockBtn.FontFace = Font.new("rbxasset://fonts/families/GothamSSm.json", Enum.FontWeight.Heavy, Enum.FontStyle.Normal)
+		lockBtn.Text = Promoter.locked and "L" or "U"
+		lockBtn.TextColor3 = Color3.fromRGB(249, 240, 255)
+		lockBtn.TextSize = 11
+		lockBtn.ZIndex = 52
+		lockBtn.Parent = frame
+		Instance.new("UICorner", lockBtn).CornerRadius = UDim.new(0, 6)
+
+		local function refreshLockVisual()
+			lockBtn.Text = Promoter.locked and "L" or "U"
+			lockBtn.BackgroundColor3 = Promoter.locked and Color3.fromRGB(95, 40, 160) or Color3.fromRGB(28, 12, 48)
+		end
+		refreshLockVisual()
+
+		lockBtn.Activated:Connect(function()
+			Promoter.locked = not Promoter.locked
+			St.promoterLocked = Promoter.locked
+			refreshLockVisual()
+			savePromoterPos()
+		end)
+
+		local dragging, dragStart, startPos = false, nil, nil
+		frame.InputBegan:Connect(function(input)
+			if Promoter.locked then return end
+			if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+				dragging = true
+				dragStart = input.Position
+				startPos = frame.Position
+				input.Changed:Connect(function()
+					if input.UserInputState == Enum.UserInputState.End then
+						if dragging then
+							dragging = false
+							savePromoterPos()
+						end
+					end
+				end)
+			end
+		end)
+		UserInputService.InputChanged:Connect(function(input)
+			if not dragging or Promoter.locked then return end
+			if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+				local delta = input.Position - dragStart
+				frame.Position = UDim2.new(
+					startPos.X.Scale, startPos.X.Offset + delta.X,
+					startPos.Y.Scale, startPos.Y.Offset + delta.Y
+				)
+			end
+		end)
+
+		local mini = Instance.new("TextButton")
+		mini.Name = "PromoterMiniBtn"
+		mini.Size = UDim2.new(0, 28, 0, 28)
+		mini.Position = UDim2.new(0, 8, 0.5, -50)
+		mini.AnchorPoint = Vector2.new(0, 0.5)
+		mini.BackgroundColor3 = Color3.fromRGB(18, 8, 28)
+		mini.BorderSizePixel = 0
+		mini.AutoButtonColor = false
+		mini.FontFace = Font.new("rbxasset://fonts/families/GothamSSm.json", Enum.FontWeight.Heavy, Enum.FontStyle.Normal)
+		mini.Text = "D"
+		mini.TextColor3 = Color3.fromRGB(220, 180, 255)
+		mini.TextSize = 13
+		mini.ZIndex = 55
+		mini.Parent = gui
+		Instance.new("UICorner", mini).CornerRadius = UDim.new(0, 8)
+		local miniStroke = Instance.new("UIStroke")
+		miniStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+		miniStroke.Color = Color3.fromRGB(160, 80, 220)
+		miniStroke.Thickness = 1.2
+		miniStroke.Parent = mini
+
+		local function setCardVisible(v)
+			cardVisible = v and true or false
+			frame.Visible = cardVisible
+			mini.BackgroundColor3 = cardVisible and Color3.fromRGB(95, 40, 160) or Color3.fromRGB(18, 8, 28)
+			mini.Text = cardVisible and "D" or "D"
+		end
+		setCardVisible(true)
+
+		mini.Activated:Connect(function()
+			setCardVisible(not cardVisible)
+		end)
+
+		Promoter.gui = gui
+		Promoter.frame = frame
+		Promoter.mini = mini
+		applySavedPos()
+	end
+
+local function setPromoterMode(on)
+		on = on == true
+		Promoter.enabled = on
+		St.promoterModeOn = on
+		Promoter.locked = St.promoterLocked == true
+		if on then
+			createPromoterGui()
+		else
+			if Promoter.frame then
+				savePromoterPos()
+			end
+			destroyPromoterGui()
+		end
+		if type(_G.VYZECC_SaveConfig) == "function" then
+			task.defer(function() pcall(_G.VYZECC_SaveConfig) end)
+		end
+	end
+
+	_G.VYZECC_SetPromoterMode = setPromoterMode
+	_G.VYZECC_ApplyPromoterPos = applySavedPos
+	_G.VYZECC_GetPromoterState = function()
+		return {
+			on = St.promoterModeOn == true,
+			locked = St.promoterLocked == true,
+			position = St.promoterPosition,
+		}
+	end
+
+	if G.VyzeccTogglePill_Promoter then
+		wireNamedToggle(G.VyzeccTogglePill_Promoter, false, setPromoterMode)
+	end
 end
 
 wireNamedToggle(G.VyzeccTogglePill_35, false, function(on)
@@ -10093,11 +10393,24 @@ local function saveVyzeccConfig()
 		end
 	end
 	local uiPositions = {}
-	for key, obj in pairs({MobileStackPanel = G.MobileStackPanel, StealBarRoot = StealBarRoot}) do
+	for key, obj in pairs({
+		MobileStackPanel = G.MobileStackPanel,
+		StealBarRoot = StealBarRoot,
+		MainOuter = G.MainOuter,
+		VyzeccMiniRestoreButton = G.VyzeccMiniRestoreButton,
+	}) do
 		if obj then
 			local p = obj.Position
 			uiPositions[key] = {xs=p.X.Scale, xo=p.X.Offset, ys=p.Y.Scale, yo=p.Y.Offset}
 		end
+	end
+	if type(St.promoterPosition) == "table" then
+		uiPositions.PromoterCard = {
+			xs = tonumber(St.promoterPosition.xs) or 0.5,
+			xo = tonumber(St.promoterPosition.xo) or -105,
+			ys = tonumber(St.promoterPosition.ys) or 0,
+			yo = tonumber(St.promoterPosition.yo) or 10,
+		}
 	end
 	local sideToggleStates = {
 		["AUTO LEFT"] = AutoPath.L == true,
@@ -10183,6 +10496,9 @@ local function saveVyzeccConfig()
 		batCounterOn = St.batCounterOn,
 		medusaCounterOn = St.medusaCounterOn,
 		antiRagdollEnabled = St.antiRagdollEnabled,
+		promoterModeOn = St.promoterModeOn == true,
+		promoterLocked = St.promoterLocked == true,
+		promoterPosition = St.promoterPosition,
 	}
 	local ok, encoded = pcall(function() return HttpService:JSONEncode(data) end)
 	if ok and encoded then
@@ -10223,13 +10539,48 @@ local function loadVyzeccConfig()
 		end
 	end
 	if type(data.uiPositions) == "table" then
-		for key, obj in pairs({MobileStackPanel = G.MobileStackPanel, StealBarRoot = StealBarRoot}) do
+		for key, obj in pairs({
+			MobileStackPanel = G.MobileStackPanel,
+			StealBarRoot = StealBarRoot,
+			MainOuter = G.MainOuter,
+			VyzeccMiniRestoreButton = G.VyzeccMiniRestoreButton,
+		}) do
 			local pos = data.uiPositions[key]
 			if obj and type(pos) == "table" then
 				local xs, xo, ys, yo = tonumber(pos.xs), tonumber(pos.xo), tonumber(pos.ys), tonumber(pos.yo)
 				if xs and xo and ys and yo then obj.Position = UDim2.new(xs, xo, ys, yo) end
 			end
 		end
+		if type(data.uiPositions.PromoterCard) == "table" then
+			local pos = data.uiPositions.PromoterCard
+			St.promoterPosition = {
+				xs = tonumber(pos.xs) or 0.5,
+				xo = tonumber(pos.xo) or -105,
+				ys = tonumber(pos.ys) or 0,
+				yo = tonumber(pos.yo) or 10,
+			}
+		end
+	end
+	if type(data.promoterPosition) == "table" then
+		St.promoterPosition = {
+			xs = tonumber(data.promoterPosition.xs) or 0.5,
+			xo = tonumber(data.promoterPosition.xo) or -105,
+			ys = tonumber(data.promoterPosition.ys) or 0,
+			yo = tonumber(data.promoterPosition.yo) or 10,
+		}
+	end
+	if type(data.promoterLocked) == "boolean" then
+		St.promoterLocked = data.promoterLocked
+	end
+	if type(data.promoterModeOn) == "boolean" and data.promoterModeOn then
+		task.defer(function()
+			if G.VyzeccTogglePill_Promoter then
+				setToggleVisual(G.VyzeccTogglePill_Promoter, true)
+			end
+			if type(_G.VYZECC_SetPromoterMode) == "function" then
+				pcall(_G.VYZECC_SetPromoterMode, true)
+			end
+		end)
 	end
 	if type(data.uiText) == "table" then
 		for name, value in pairs(data.uiText) do
