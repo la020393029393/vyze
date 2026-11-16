@@ -5765,13 +5765,7 @@ local function getActiveSpeed()
 	if St.laggerMode == 2 then
 		return math.max(1, tonumber(St.burstCarrySpeed) or 10)
 	end
-	local stealing = false
-	pcall(function()
-		if LocalPlayer:GetAttribute("Stealing") == true then stealing = true end
-		local char = LocalPlayer.Character
-		if char and char:GetAttribute("Stealing") == true then stealing = true end
-	end)
-	if St.speedToggled or stealing or St._autoCarryHandoff then
+	if St.speedToggled then
 		return math.max(1, tonumber(St.carrySpeed) or 30)
 	end
 	return math.max(1, tonumber(St.normalSpeed) or 60)
@@ -5877,10 +5871,9 @@ local function autoStartLeft()
                 if (facePos - root.Position).Magnitude > 0.01 then
                     pcall(function() root.CFrame = CFrame.new(root.Position, facePos) end)
                 end
-                St._autoCarryHandoff = true
-                task.delay(2, function()
-                    if St then St._autoCarryHandoff = false end
-                end)
+                if St.autoCarryOn then
+                    St.speedToggled = true
+                end
                 autoTryRouteSteal()
                 autoStop("L")
                 return
@@ -5946,10 +5939,9 @@ local function autoStartRight()
                 if (facePos - root.Position).Magnitude > 0.01 then
                     pcall(function() root.CFrame = CFrame.new(root.Position, facePos) end)
                 end
-                St._autoCarryHandoff = true
-                task.delay(2, function()
-                    if St then St._autoCarryHandoff = false end
-                end)
+                if St.autoCarryOn then
+                    St.speedToggled = true
+                end
                 autoTryRouteSteal()
                 autoStop("R")
                 return
